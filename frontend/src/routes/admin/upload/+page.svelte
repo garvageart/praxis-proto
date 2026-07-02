@@ -102,6 +102,7 @@
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
+    color: $color-text;
   }
 
   .subtitle {
@@ -111,10 +112,11 @@
   }
 
   .form {
-    background: white;
+    background: $color-surface;
     padding: 1.5rem;
     border-radius: $radius-md;
     box-shadow: $shadow-sm;
+    border: 1px solid $color-border;
   }
 
   .field {
@@ -131,10 +133,12 @@
     select, textarea {
       width: 100%;
       padding: 0.5rem 0.75rem;
-      border: 1px solid #d1d5db;
+      border: 1px solid $color-border-strong;
       border-radius: $radius-sm;
       font-family: inherit;
       font-size: 0.9375rem;
+      background: $color-surface-2;
+      color: $color-text;
 
       &:focus {
         outline: none;
@@ -148,6 +152,11 @@
       line-height: 1.6;
       resize: vertical;
     }
+
+    select option {
+      background: $color-surface-2;
+      color: $color-text;
+    }
   }
 
   .btn {
@@ -157,43 +166,44 @@
     border: none;
     border-radius: $radius-sm;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: opacity 0.15s;
     color: white;
     background: $color-primary;
 
-    &:hover:not(:disabled) { background: $color-primary-hover; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:hover:not(:disabled) { opacity: 0.9; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
 
     &-secondary {
-      background: white;
+      background: $color-surface-2;
       color: $color-primary;
       border: 1px solid $color-primary;
       margin-top: 1rem;
-      &:hover { background: #f0f4ff; }
+      &:hover { background: $color-surface-3; }
     }
   }
 
   .error-box {
     margin-top: 1rem;
     padding: 0.75rem;
-    background: #fee2e2;
-    color: #991b1b;
+    background: $color-error-bg;
+    color: $color-error;
     border-radius: $radius-sm;
     font-size: 0.875rem;
+    border: 1px solid rgba(239, 68, 68, 0.2);
   }
 
   .result {
     margin-top: 1.5rem;
     padding: 1.5rem;
-    background: #f0fdf4;
+    background: $color-success-bg;
     border-radius: $radius-md;
-    border: 1px solid #bbf7d0;
+    border: 1px solid rgba(34, 197, 94, 0.2);
 
     h2 {
       font-size: 1.125rem;
       font-weight: 600;
       margin-bottom: 1rem;
-      color: #166534;
+      color: $color-success;
     }
   }
 
@@ -205,6 +215,7 @@
 
   .result-field {
     font-size: 0.875rem;
+    color: $color-text;
 
     span:first-child {
       display: inline-block;

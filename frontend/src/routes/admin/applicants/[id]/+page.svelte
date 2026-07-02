@@ -10,7 +10,7 @@
   let message = $state('');
 
   onMount(async () => {
-    const id = $page.params.id;
+    const id = $page.params.id!;
     try {
       app = await applicants.get(id);
       subs = await applicants.submissions(id);
@@ -137,6 +137,7 @@
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
+    color: $color-text;
   }
 
   .muted { color: $color-text-muted; font-size: 0.875rem; }
@@ -149,10 +150,12 @@
   }
 
   .info {
-    background: white;
+    background: $color-surface;
     padding: 0.75rem 1rem;
     border-radius: $radius-sm;
     font-size: 0.9375rem;
+    color: $color-text;
+    border: 1px solid $color-border;
 
     span:first-child {
       display: block;
@@ -167,14 +170,14 @@
   .badge {
     display: inline-block;
     padding: 0.125rem 0.5rem;
-    border-radius: 999px;
+    border-radius: $radius-full;
     font-size: 0.75rem;
     font-weight: 500;
-    background: #e5e5e5;
-    color: $color-text-muted;
-    &-green { background: #dcfce7; color: #166534; }
-    &-red { background: #fee2e2; color: #991b1b; }
-    &-yellow { background: #fef9c3; color: #854d0e; }
+    background: $color-surface-3;
+    color: $color-text-subtle;
+    &-green { background: $color-success-bg; color: $color-success; }
+    &-red { background: $color-error-bg; color: $color-error; }
+    &-yellow { background: $color-warning-bg; color: $color-warning; }
   }
 
   .section {
@@ -183,6 +186,7 @@
       font-size: 1.125rem;
       font-weight: 600;
       margin-bottom: 1rem;
+      color: $color-text;
     }
   }
 
@@ -192,11 +196,12 @@
   }
 
   .score-card {
-    background: white;
+    background: $color-surface;
     padding: 1rem 1.5rem;
     border-radius: $radius-md;
     box-shadow: $shadow-sm;
     text-align: center;
+    border: 1px solid $color-border;
   }
 
   .score-label {
@@ -215,12 +220,14 @@
   }
 
   .submission {
-    background: white;
+    background: $color-surface;
     border-radius: $radius-md;
     padding: 1rem;
     margin-bottom: 0.75rem;
     box-shadow: $shadow-sm;
     font-size: 0.875rem;
+    border: 1px solid $color-border;
+    color: $color-text;
   }
 
   .sub-header {
@@ -231,14 +238,15 @@
   }
 
   .sub-id { font-weight: 600; font-size: 0.8125rem; color: $color-text-muted; }
-  .sub-score { margin-left: auto; font-weight: 600; }
+  .sub-score { margin-left: auto; font-weight: 600; color: $color-text; }
 
   .ai-summary {
-    background: #f0f4ff;
+    background: $gradient-brand-subtle;
     padding: 0.75rem;
     border-radius: $radius-sm;
     line-height: 1.6;
     font-size: 0.875rem;
+    color: $color-text;
   }
 
   .hints {
@@ -260,14 +268,19 @@
     border-radius: $radius-sm;
     cursor: pointer;
     color: white;
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-    &-accept { background: $color-success; &:hover:not(:disabled) { background: #15803d; } }
-    &-reject { background: $color-error; &:hover:not(:disabled) { background: #b91c1c; } }
+    transition: opacity 0.15s;
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+    &:hover:not(:disabled) { opacity: 0.9; }
+    &-accept { background: $color-success; }
+    &-reject { background: $color-error; }
   }
 
   .message {
     margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: $color-surface-2;
+    border-radius: $radius-sm;
     font-size: 0.875rem;
-    color: $color-text-muted;
+    color: $color-text-subtle;
   }
 </style>

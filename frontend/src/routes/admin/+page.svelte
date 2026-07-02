@@ -84,6 +84,7 @@
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
+    color: $color-text;
   }
 
   .muted {
@@ -104,7 +105,7 @@
   }
 
   .card {
-    background: white;
+    background: $color-surface;
     border-radius: $radius-md;
     padding: 1.25rem;
     box-shadow: $shadow-sm;
@@ -120,7 +121,7 @@
 
   .card-label {
     font-size: 0.8125rem;
-    color: $color-text-muted;
+    color: $color-text-subtle;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 0.25rem;
@@ -137,7 +138,7 @@
   }
 
   .panel {
-    background: white;
+    background: $color-surface;
     border-radius: $radius-md;
     padding: 1.25rem;
     box-shadow: $shadow-sm;
@@ -147,7 +148,8 @@
       font-weight: 600;
       margin-bottom: 1rem;
       padding-bottom: 0.5rem;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid $color-border;
+      color: $color-text;
     }
   }
 

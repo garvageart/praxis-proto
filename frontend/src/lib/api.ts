@@ -1,5 +1,6 @@
-import { env } from '$env/dynamic/public';
-const API_BASE = env.PUBLIC_API_URL || 'http://localhost:8080';
+// In production, API requests are proxied through SvelteKit (hooks.server.ts)
+// In development, they go directly to the local backend
+const API_BASE = '';
 
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -46,6 +47,20 @@ export const applicants = {
   submissions: (id: string) => request<any[]>(`/api/applicants/${id}/submissions`),
   decision: (id: string, decision: 'accepted' | 'rejected') =>
     request<any>(`/api/applicants/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision }) })
+};
+
+// --- Submissions ---
+export const submissions = {
+  create: (data: {
+    challengeId: string;
+    name: string;
+    email: string;
+    degree: string;
+    payload: Record<string, unknown>;
+    score: number;
+    hintsUsed?: number;
+  }) => request<any>('/api/submissions', { method: 'POST', body: JSON.stringify(data) }),
+  all: () => request<any[]>('/api/submissions')
 };
 
 // --- Admin ---

@@ -22,6 +22,6 @@
     flex: 1;
     padding: 2rem;
     min-height: 100vh;
-    background: #f5f5f5;
+    background: $color-bg;
   }
 </style>
