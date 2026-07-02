@@ -60,4 +60,34 @@ export async function applicantRoutes(app: FastifyInstance) {
   app.get('/api/submissions', async () => {
     return getAllSubmissions();
   });
+
+  // --- Generate AI summary for a submission ---
+  app.post<{ Params: { id: string } }>(
+    '/api/submissions/:id/summarise',
+    async (req, reply) => {
+      const sub = getSubmission(req.params.id);
+      if (!sub) return reply.code(404).send({ error: 'Submission not found' });
+
+      const summary = await summariseSubmission(JSON.stringify(sub.payload));
+      return { summary };
+    }
+  );
+
+  // --- Submit payload (for journey submissions, triggers AI summary) ---
+  app.post<{ Body: { challengeId: string; applicantId: string; payload: Record<string, unknown> } }>(
+    '/api/submissions',
+    async (req, reply) => {
+      const { challengeId, applicantId, payload } = req.body;
+      const sub = createSubmission({
+        challengeId,
+        applicantId,
+        payload,
+        score: null,
+        aiSummary: null,
+        aiHintsGiven: 0,
+        status: 'submitted'
+      });
+      return reply.code(201).send(sub);
+    }
+  );
 }
