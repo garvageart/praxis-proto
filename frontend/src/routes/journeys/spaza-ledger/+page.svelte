@@ -353,12 +353,13 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
-    background: #f0f4ff;
-    border: 1px solid #dbeafe;
+    background: $gradient-brand-subtle;
+    border: 1px solid rgba(99, 102, 241, 0.2);
     border-radius: $radius-sm;
     cursor: grab;
     user-select: none;
     transition: box-shadow 0.15s;
+    color: $color-text;
 
     &:hover {
       box-shadow: $shadow-sm;
@@ -377,7 +378,7 @@
     .amount {
       font-size: 0.875rem;
       font-weight: 600;
-      color: $color-text-muted;
+      color: $color-text-subtle;
     }
   }
 
@@ -394,7 +395,7 @@
 
   .bucket {
     background: $color-surface;
-    border: 2px dashed #d1d5db;
+    border: 2px dashed $color-border-strong;
     border-radius: $radius-md;
     padding: 0.75rem;
     min-height: 120px;
@@ -402,7 +403,7 @@
 
     &.drag-over {
       border-color: $color-primary;
-      background: #f0f4ff;
+      background: $gradient-brand-subtle;
     }
   }
 
@@ -414,7 +415,7 @@
     color: $color-text-muted;
     margin-bottom: 0.5rem;
     padding-bottom: 0.375rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid $color-border;
   }
 
   .bucket-items {
@@ -428,9 +429,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: #f9fafb;
+    background: $color-surface-3;
     border-radius: $radius-sm;
     font-size: 0.8125rem;
+    color: $color-text;
 
     .desc {
       flex: 1;
@@ -461,18 +463,19 @@
     padding: 0.5rem 1rem;
     font-size: 0.8125rem;
     font-weight: 500;
-    border: 1px solid #d1d5db;
+    border: 1px solid $color-border-strong;
     border-radius: $radius-sm;
-    background: white;
+    background: $color-surface-2;
+    color: $color-text;
     cursor: pointer;
     transition: background 0.15s;
 
     &:hover:not(:disabled) {
-      background: #f3f4f6;
+      background: $color-surface-3;
     }
 
     &:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
     }
 
@@ -509,13 +512,14 @@
     padding: 0.5rem 0.75rem;
     border-radius: $radius-sm;
     font-size: 0.875rem;
+    color: $color-text;
 
     &.correct {
-      background: #f0fdf4;
+      background: $color-success-bg;
     }
 
     &.incorrect {
-      background: #fef2f2;
+      background: $color-error-bg;
     }
 
     .detail {
@@ -579,13 +583,15 @@
     width: 100%;
     min-height: 120px;
     padding: 0.75rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid $color-border-strong;
     border-radius: $radius-sm;
     font-family: inherit;
     font-size: 0.9375rem;
     line-height: 1.6;
     resize: vertical;
     margin-top: 0.5rem;
+    background: $color-surface-2;
+    color: $color-text;
 
     &:focus {
       outline: none;
@@ -594,12 +600,13 @@
   }
 
   .success {
-    background: #dcfce7;
-    color: #166534;
+    background: $color-success-bg;
+    color: $color-success;
     padding: 1rem;
     border-radius: $radius-sm;
     font-weight: 500;
     text-align: center;
     margin-top: 1rem;
+    border: 1px solid rgba(34, 197, 94, 0.2);
   }
 </style>

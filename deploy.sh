@@ -25,7 +25,7 @@ gcloud run deploy praxis \
     --platform managed \
     --allow-unauthenticated \
     --port=8080 \
-    --set-env-vars="NODE_ENV=production" \
+    --set-env-vars="NODE_ENV=production,GEMINI_API_KEY=AIzaSyAY5g7NcnmSZ2ziSJ2ORX-ySZooRBfSSxY" \
     --format="value(status.url)"
 
 echo "Deployment complete."
