@@ -5,7 +5,7 @@ import {
   createChallenge,
   updateChallenge
 } from '../db/index.js';
-import { extractFromText, generateChallengeConfig, randomisePayload } from '../lib/llm.js';
+import { extractFromText, generateChallengeConfig, randomisePayload, generateHint } from '../lib/llm.js';
 
 export async function challengeRoutes(app: FastifyInstance) {
   // List all challenges
@@ -65,6 +65,17 @@ export async function challengeRoutes(app: FastifyInstance) {
       const newPayload = randomisePayload(challenge.configPayload);
       const updated = updateChallenge(req.params.id, { configPayload: newPayload });
       return updated;
+    }
+  );
+
+  // --- AI Hint Generation (for CS Buggy Leaderboard) ---
+  app.post<{ Body: { code: string; testOutput: string } }>(
+    '/api/hints/generate',
+    async (req, reply) => {
+      const { code, testOutput } = req.body;
+      if (!code) return reply.code(400).send({ error: 'Code required' });
+      const hint = await generateHint(code, testOutput || '');
+      return { hint };
     }
   );
 

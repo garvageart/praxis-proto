@@ -4,6 +4,7 @@
  */
 
 import type { University, Degree, Challenge, Applicant, Submission } from './types.js';
+import { seedFromChallenges } from '../lib/rag.js';
 
 // In-memory stores
 const universities = new Map<string, University>();
@@ -69,6 +70,13 @@ function seed() {
     type: 'ledger_sort', configPayload: {}, status: 'published',
     createdAt: new Date(), updatedAt: new Date()
   });
+
+  // Seed RAG knowledge base from challenges
+  seedFromChallenges([
+    { title: 'The Buggy Leaderboard', type: 'code_fix', configPayload: { initialCode: 'function sortLeaderboard(students) { return students.sort((a, b) => a.score - b.score); }' } },
+    { title: 'Hierarchy Rescue', type: 'design_review', configPayload: { criteria: ['contrast', 'hierarchy', 'alignment'] } },
+    { title: 'The Spaza Shop Ledger', type: 'ledger_sort', configPayload: { buckets: ['Assets', 'Liabilities', 'Income', 'Expenses', 'Equity'] } }
+  ]);
 
   // Seed submissions
   submissions.set('s-001', {

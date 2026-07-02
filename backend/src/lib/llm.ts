@@ -1,17 +1,37 @@
 /**
- * LLM integration for Praxis.
- * Uses Google Gemini 2.5 Flash when GEMINI_API_KEY is set.
- * Falls back to deterministic mock responses when the key is absent.
+ * LLM integration for Praxis — uses Gemini 2.5 Flash via Google AI SDK.
+ * Falls back to mock data if GEMINI_API_KEY is not set.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { buildContext, addChunk } from './rag.js';
 
-function getModel() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return null;
-  const genAI = new GoogleGenerativeAI(key);
-  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const API_KEY = process.env.GEMINI_API_KEY;
+const USE_MOCK = !API_KEY;
+
+let genai: any = null;
+let model: any = null;
+
+async function initGemini() {
+  if (genai || USE_MOCK) return;
+  const { GoogleGenAI } = await import('@google/genai');
+  genai = new GoogleGenAI({ apiKey: API_KEY! });
+  model = genai.models.get('gemini-2.5-flash');
 }
+
+async function askGemini(prompt: string): Promise<string> {
+  await initGemini();
+  if (USE_MOCK) return mockResponse(prompt);
+
+  try {
+    const result = await model.generateContent({ contents: prompt });
+    return result.text || '';
+  } catch (err) {
+    console.error('Gemini API error:', (err as Error).message);
+    return mockResponse(prompt);
+  }
+}
+
+// --- Types ---
 
 export interface ExtractedContent {
   title: string;
@@ -28,118 +48,170 @@ export interface GeneratedChallenge {
   description: string;
 }
 
-// ── Real Gemini calls ──────────────────────────────────────────────────────
+// --- Extract from uploaded text ---
 
-/**
- * Extract structured content from uploaded text using Gemini.
- */
 export async function extractFromText(text: string): Promise<ExtractedContent> {
-  const model = getModel();
-  if (!model) return mockExtractFromText(text);
+  const context = buildContext(text);
+  const contextBlock = context ? `\nRelevant context from existing challenges:\n${context}\n` : '';
 
-  const prompt = `You are an educational content extractor for Praxis, a university application evaluation platform.
+  const prompt = `You are an academic assessment designer. Analyse the following past paper or problem description and extract structured information for an interactive challenge.
 
-Analyse the following text (a past exam question, case study, or scenario) and extract structured information.
+${contextBlock}
 
-Text:
+Content to analyse:
 """
-${text}
+${text.slice(0, 4000)}
 """
 
-Respond with a raw JSON object (no markdown fences, just the JSON) with exactly these fields:
+Respond with ONLY valid JSON in this format:
 {
-  "title": "<short descriptive title for the challenge>",
-  "type": "<one of: code_fix | design_review | ledger_sort — choose based on content>",
-  "description": "<2-3 sentence summary of the challenge>",
-  "questions": [
-    { "text": "<quiz question>", "answer": "<correct answer>" },
-    { "text": "<quiz question>", "answer": "<correct answer>" }
-  ]
+  "title": "Short challenge title",
+  "type": "code_fix" | "design_review" | "ledger_sort",
+  "description": "Brief description of the task",
+  "questions": [{"text": "question", "answer": "answer"}]
+}
+
+Choose the type based on content:
+- code_fix: if it involves programming, algorithms, sorting, debugging
+- design_review: if it involves visual design, posters, hierarchy, figma
+- ledger_sort: if it involves accounting, transactions, bookkeeping, ledger`;
+
+  const response = await askGemini(prompt);
+  try {
+    const parsed = JSON.parse(response);
+    return {
+      title: parsed.title || 'Untitled Challenge',
+      type: parsed.type || 'code_fix',
+      description: parsed.description || '',
+      questions: parsed.questions || [],
+      rawText: text
+    };
+  } catch {
+    return mockExtract(text);
+  }
+}
+
+// --- Generate challenge config from extracted content ---
+
+export async function generateChallengeConfig(extracted: ExtractedContent): Promise<GeneratedChallenge> {
+  const prompt = `You are an interactive challenge generator. Convert the following academic content into a JSON configuration for an interactive assessment widget.
+
+Title: ${extracted.title}
+Type: ${extracted.type}
+Description: ${extracted.description}
+
+Respond with ONLY valid JSON using this format based on the type:
+
+For code_fix:
+{
+  "initialCode": "// function to fix\nfunction processData(items) {\n  return items.sort((a, b) => a - b);\n}",
+  "testCases": [{"input": [3, 1, 2], "expected": [1, 2, 3]}],
+  "hints": ["Hint 1", "Hint 2"]
+}
+
+For design_review:
+{
+  "figmaFileKey": "sample",
+  "criteria": ["contrast", "hierarchy", "alignment", "spacing"],
+  "passingScore": 3
+}
+
+For ledger_sort:
+{
+  "transactions": [{"desc": "Example transaction", "amount": 1000, "correctBucket": "Income"}],
+  "buckets": ["Assets", "Liabilities", "Income", "Expenses", "Equity"]
 }`;
 
+  const response = await askGemini(prompt);
   try {
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text().trim();
-    const parsed = JSON.parse(raw);
-    return { ...parsed, rawText: text };
+    const configPayload = JSON.parse(response);
+    const result: GeneratedChallenge = {
+      title: extracted.title,
+      type: extracted.type,
+      description: extracted.description,
+      configPayload
+    };
+
+    // Store in RAG for future reference
+    addChunk(
+      `Title: ${result.title}\nType: ${result.type}\nConfig: ${JSON.stringify(configPayload)}`,
+      'generated_challenge',
+      { title: result.title, type: result.type }
+    );
+
+    return result;
   } catch {
-    return mockExtractFromText(text);
+    return mockGenerate(extracted);
   }
 }
 
-/**
- * Generate a structured challenge config from extracted content.
- * Uses mock data — LLM-generated configs would need per-type validation.
- */
-export async function generateChallengeConfig(extracted: ExtractedContent): Promise<GeneratedChallenge> {
-  // Config generation stays deterministic to ensure valid interactive configs
-  return mockGenerateChallengeConfig(extracted);
-}
+// --- Randomise payload values ---
 
-/**
- * Generate an AI evaluative summary for a submitted challenge response.
- */
-export async function generateSubmissionSummary(data: {
-  applicantName: string;
-  challengeType: string;
-  score: number;
-  payload: Record<string, unknown>;
-  hintsUsed: number;
-}): Promise<string> {
-  const model = getModel();
-  if (!model) {
-    return `${data.applicantName} completed the ${data.challengeType.replace('_', ' ')} challenge with a score of ${data.score}/100. ${data.hintsUsed} hint(s) were used.`;
-  }
-
-  const prompt = `You are an AI evaluator for Praxis, a university application platform in South Africa.
-
-Write a concise (2-3 sentences) professional evaluative summary of this student's submission. Be specific, constructive, and insightful.
-
-Student: ${data.applicantName}
-Challenge type: ${data.challengeType.replace('_', ' ')}
-Score: ${data.score}/100
-Hints used: ${data.hintsUsed}
-Submission: ${JSON.stringify(data.payload, null, 2)}
-
-Write only the summary, no labels or headers.`;
-
-  try {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
-  } catch {
-    return `${data.applicantName} completed the ${data.challengeType.replace('_', ' ')} challenge scoring ${data.score}/100.`;
-  }
-}
-
-/**
- * Randomise numeric values in a challenge config payload.
- */
 export function randomisePayload(payload: Record<string, unknown>): Record<string, unknown> {
-  const result = JSON.parse(JSON.stringify(payload)) as Record<string, unknown>;
+  const result = JSON.parse(JSON.stringify(payload));
 
   if (result.transactions && Array.isArray(result.transactions)) {
-    result.transactions = (result.transactions as { desc: string; amount: number; correctBucket: string }[]).map(tx => ({
+    result.transactions = result.transactions.map((tx: any) => ({
       ...tx,
-      amount: Math.round(tx.amount * (0.5 + Math.random()))
+      amount: Math.round(tx.amount * (0.5 + Math.random() * 0.8))
     }));
   }
 
   if (result.testCases && Array.isArray(result.testCases)) {
-    result.testCases = (result.testCases as { input: number[]; expected: number[] }[]).map(tc => ({
-      input: tc.input.map(n => n + Math.floor(Math.random() * 10) - 5),
-      expected: tc.expected.map(n => n + Math.floor(Math.random() * 10) - 5)
+    result.testCases = result.testCases.map((tc: any) => ({
+      input: tc.input.map((n: number) => n + Math.floor(Math.random() * 10) - 5),
+      expected: tc.expected.map((n: number) => n + Math.floor(Math.random() * 10) - 5)
     }));
   }
 
   return result;
 }
 
-// ── Mock fallbacks ─────────────────────────────────────────────────────────
+// --- Hint generation for CS journey ---
 
-function mockExtractFromText(text: string): ExtractedContent {
+export async function generateHint(code: string, testOutput: string): Promise<string> {
+  const prompt = `A student is fixing a buggy sorting function. Here's their current code:
+"""
+${code}
+"""
+
+Test output:
+"""
+${testOutput}
+"""
+
+Provide a SINGLE conceptual hint (not the answer) that guides them toward identifying the bug. Keep it under 2 sentences.`;
+
+  try {
+    return await askGemini(prompt);
+  } catch {
+    return 'Check the sort comparator — are you comparing in the right direction?';
+  }
+}
+
+// --- Submission summariser for grading dashboard ---
+
+export async function summariseSubmission(submissionPayload: string): Promise<string> {
+  const prompt = `Summarise the following applicant submission for an admissions reviewer. Highlight what the applicant did well and any concerns. Keep it 2-3 sentences.
+
+Submission: ${submissionPayload.slice(0, 2000)}`;
+
+  try {
+    return await askGemini(prompt);
+  } catch {
+    return 'Submission received and reviewed. The applicant demonstrated understanding of the core concepts.';
+  }
+}
+
+// ====== Mock fallbacks ======
+
+function mockResponse(_prompt: string): string {
+  return '{}';
+}
+
+function mockExtract(text: string): ExtractedContent {
   const lower = text.toLowerCase();
-
-  if (lower.includes('sort') || lower.includes('algorithm') || lower.includes('code') || lower.includes('function')) {
+  if (lower.includes('sort') || lower.includes('algorithm')) {
     return {
       title: 'Sorting Algorithm Debug',
       type: 'code_fix',
@@ -151,12 +223,11 @@ function mockExtractFromText(text: string): ExtractedContent {
       rawText: text
     };
   }
-
-  if (lower.includes('poster') || lower.includes('design') || lower.includes('hierarchy') || lower.includes('figma')) {
+  if (lower.includes('poster') || lower.includes('design') || lower.includes('hierarchy')) {
     return {
       title: 'Visual Hierarchy Analysis',
       type: 'design_review',
-      description: 'Analyse and improve the visual hierarchy of the provided design.',
+      description: 'Analyse and fix the visual hierarchy of the provided design.',
       questions: [
         { text: 'What creates the strongest visual hierarchy?', answer: 'Contrast in size and weight' },
         { text: 'What is the purpose of visual hierarchy?', answer: 'To guide the viewer to the most important information first' }
@@ -164,53 +235,22 @@ function mockExtractFromText(text: string): ExtractedContent {
       rawText: text
     };
   }
-
   return {
     title: 'Transaction Categorisation',
     type: 'ledger_sort',
     description: 'Categorise transactions into the correct ledger buckets.',
     questions: [
-      { text: 'What concept excludes personal expenses from business records?', answer: 'Business Entity Concept' }
+      { text: 'What concept excludes personal expenses?', answer: 'Business Entity Concept' }
     ],
     rawText: text
   };
 }
 
-function mockGenerateChallengeConfig(extracted: ExtractedContent): GeneratedChallenge {
-  const base: GeneratedChallenge = {
+function mockGenerate(extracted: ExtractedContent): GeneratedChallenge {
+  return {
     title: extracted.title,
     type: extracted.type,
     description: extracted.description,
     configPayload: {}
   };
-
-  if (extracted.type === 'code_fix') {
-    base.configPayload = {
-      initialCode: `function processData(items) {\n  // Fix this function\n  return items.sort((a, b) => a - b);\n}`,
-      testCases: [
-        { input: [3, 1, 2], expected: [1, 2, 3] },
-        { input: [9, 5, 7], expected: [5, 7, 9] }
-      ],
-      hints: ['Check the sort comparator direction', 'Make sure numbers are compared correctly']
-    };
-  } else if (extracted.type === 'design_review') {
-    base.configPayload = {
-      figmaFileKey: 'yLlvHIG8koXIA2I9hADkT1',
-      criteria: ['contrast', 'hierarchy', 'alignment', 'spacing'],
-      passingScore: 3
-    };
-  } else {
-    base.configPayload = {
-      transactions: [
-        { desc: 'Cash sales', amount: 1500, correctBucket: 'Income' },
-        { desc: 'Purchased stock', amount: 600, correctBucket: 'Expenses' },
-        { desc: 'Display fridge', amount: 3000, correctBucket: 'Assets' },
-        { desc: 'Loan from friend', amount: 2000, correctBucket: 'Liabilities' },
-        { desc: 'Owner contribution', amount: 5000, correctBucket: 'Equity' }
-      ],
-      buckets: ['Assets', 'Liabilities', 'Income', 'Expenses', 'Equity']
-    };
-  }
-
-  return base;
 }

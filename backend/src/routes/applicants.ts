@@ -4,9 +4,12 @@ import {
   getApplicant,
   updateApplicant,
   getSubmissionsByApplicant,
+  getSubmission,
   getAllSubmissions,
-  getDashboardStats
+  getDashboardStats,
+  createSubmission
 } from '../db/index.js';
+import { summariseSubmission } from '../lib/llm.js';
 
 export async function applicantRoutes(app: FastifyInstance) {
   // --- Dashboard ---
